@@ -5,6 +5,7 @@ from pathlib import Path
 import requests
 
 from sources import get_internships
+from filters import classify_2029_eligibility
 
 
 SEEN_FILE = Path("seen_jobs.json")
