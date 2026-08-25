@@ -114,11 +114,22 @@ def main():
     print(f"Found {len(new_jobs)} new internships.")
 
     for job in new_jobs:
+        eligibility = classify_2029_eligibility(job)
+    
         print(
-            f"Sending alert: "
-            f"{job.get('company')} — {job.get('title')}"
+            f"{job.get('company')} — {job.get('title')} "
+            f"→ {eligibility['label']}"
         )
-
+    
+        # Don't bother us with jobs that clearly exclude Class of 2029.
+        if eligibility["status"] == "red":
+            print("Skipping because Class of 2029 is likely not eligible.")
+            seen_jobs.add(get_job_id(job))
+            continue
+    
+        job["eligibility"] = eligibility["label"]
+        job["eligibility_reason"] = eligibility["reason"]
+    
         send_slack_alert(job)
         seen_jobs.add(get_job_id(job))
 
