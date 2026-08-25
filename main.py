@@ -6,6 +6,7 @@ import requests
 
 from sources import get_internships
 from filters import classify_2029_eligibility
+from datetime import datetime
 
 
 SEEN_FILE = Path("seen_jobs.json")
@@ -34,13 +35,42 @@ def get_apply_url(job):
     return job.get("listingUrl") or job.get("url")
 
 
+def format_posted_date(posted):
+    if not posted or posted == "Not listed":
+        return "Not listed"
+
+    # Unix timestamp
+    if isinstance(posted, (int, float)):
+        return datetime.fromtimestamp(posted).strftime("%b %d, %Y")
+
+    if isinstance(posted, str):
+        stripped = posted.strip()
+
+        # Unix timestamp stored as a string
+        if stripped.isdigit():
+            try:
+                return datetime.fromtimestamp(
+                    int(stripped)
+                ).strftime("%b %d, %Y")
+            except (ValueError, OSError):
+                pass
+
+        # Already-human-readable date
+        return stripped
+
+    return str(posted)
+
+
 def send_slack_alert(job):
     webhook_url = os.environ["SLACK_WEBHOOK_URL"]
 
     company = job.get("company", "Unknown company")
     title = job.get("title", "Software Engineering Internship")
     location = job.get("location", "Location not listed")
-    posted = job.get("posted", "Not listed")
+    posted = format_posted_date(
+        job.get("posted", "Not listed")
+    )
+    source = job.get("source", "Unknown")
     apply_url = get_apply_url(job)
 
     message = {
@@ -49,7 +79,7 @@ def send_slack_alert(job):
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "🚨 NEW SUMMER 2027 SWE INTERNSHIP"
+                    "text": "🚨 NEW SUMMER 2027 SWE APPLICATION"
                 }
             },
             {
@@ -61,7 +91,8 @@ def send_slack_alert(job):
                         f"📍 *Location:* {location}\n"
                         f"🗓 *Posted:* {posted}\n"
                         f"🎓 *Eligibility:* {job['eligibility']}\n"
-                        f"💡 *Why:* {job['eligibility_reason']}"
+                        f"💡 *Why:* {job['eligibility_reason']}\n"
+                        f"🔎 *Source:* {source}"
                     )
                 }
             },
@@ -74,7 +105,8 @@ def send_slack_alert(job):
                             "type": "plain_text",
                             "text": "Apply Now"
                         },
-                        "url": apply_url
+                        "url": apply_url,
+                        "style": "primary"
                     }
                 ]
             }
