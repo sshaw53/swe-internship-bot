@@ -1,10 +1,16 @@
-name: Test Slack Bot
+name: Internship Monitor
 
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: write
+
 jobs:
-  test-slack:
+  monitor:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +25,21 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Send Slack test
+      - name: Run internship bot
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: python test_slack.py
+        run: python main.py
+
+      - name: Save seen internships
+        run: |
+          if git diff --quiet seen_jobs.json; then
+            echo "No new changes to save."
+            exit 0
+          fi
+
+          git config user.name "internship-bot"
+          git config user.email "internship-bot@users.noreply.github.com"
+
+          git add seen_jobs.json
+          git commit -m "Update seen internships"
+          git push
