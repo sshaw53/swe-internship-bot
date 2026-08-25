@@ -60,7 +60,8 @@ def send_slack_alert(job):
                         f"*{company} — {title}*\n\n"
                         f"📍 *Location:* {location}\n"
                         f"🗓 *Posted:* {posted}\n"
-                        f"🎓 *Class of 2029:* Eligibility check coming next"
+                        f"🎓 *Eligibility:* {job['eligibility']}\n"
+                        f"💡 *Why:* {job['eligibility_reason']}"
                     )
                 }
             },
