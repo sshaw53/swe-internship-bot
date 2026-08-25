@@ -25,42 +25,28 @@ INELIGIBLE_TERMS = [
 ]
 
 
-def extract_years(text):
-    """
-    Finds graduation years mentioned in text.
-    Example:
-    'graduating between 2028 and 2030'
-    -> [2028, 2030]
-    """
-    return [
-        int(year)
-        for year in re.findall(r"\b20\d{2}\b", text)
-    ]
-
-
 def classify_2029_eligibility(job):
     """
-    Returns:
     green  = clearly eligible
     yellow = unclear / worth checking
     red    = clearly not eligible
     """
 
-    title = job.get("title", "")
+    # IMPORTANT:
+    # Do NOT use the title here.
+    # Titles contain "Summer 2027", which is NOT a graduation year.
     description = job.get("description", "")
     requirements = job.get("requirements", "")
 
-    text = f"{title} {description} {requirements}".lower()
+    text = f"{description} {requirements}".lower()
 
-    # Explicit sophomore-friendly wording
     if any(term in text for term in ELIGIBLE_TERMS):
         return {
             "status": "green",
             "label": "🟢 Class of 2029 eligible",
-            "reason": "Sophomore/undergraduate eligibility detected",
+            "reason": "Sophomore or undergraduate eligibility detected",
         }
 
-    # Explicit junior/senior/graduate restriction
     if any(term in text for term in INELIGIBLE_TERMS):
         return {
             "status": "red",
@@ -68,47 +54,49 @@ def classify_2029_eligibility(job):
             "reason": "Upperclassman or graduate restriction detected",
         }
 
-    years = extract_years(text)
+    # Look specifically for graduation-related wording,
+    # rather than treating every year as a graduation requirement.
+    graduation_patterns = [
+        r"graduat(?:e|ing|ion).*?(20\d{2}).*?(20\d{2})",
+        r"expected graduation.*?(20\d{2}).*?(20\d{2})",
+        r"graduation date.*?(20\d{2}).*?(20\d{2})",
+    ]
 
-    # Explicit mention of 2029 is a strong positive signal
-    if 2029 in years:
-        return {
-            "status": "green",
-            "label": "🟢 Class of 2029 eligible",
-            "reason": "2029 graduation year explicitly mentioned",
-        }
+    for pattern in graduation_patterns:
+        match = re.search(pattern, text)
 
-    # Detect graduation ranges such as:
-    # "between December 2027 and June 2030"
-    if len(years) >= 2:
-        earliest = min(years)
-        latest = max(years)
+        if match:
+            year1 = int(match.group(1))
+            year2 = int(match.group(2))
 
-        if earliest <= 2029 <= latest:
-            return {
-                "status": "green",
-                "label": "🟢 Class of 2029 eligible",
-                "reason": f"2029 falls within stated graduation range {earliest}-{latest}",
-            }
+            earliest = min(year1, year2)
+            latest = max(year1, year2)
 
-        if 2029 < earliest or 2029 > latest:
+            if earliest <= 2029 <= latest:
+                return {
+                    "status": "green",
+                    "label": "🟢 Class of 2029 eligible",
+                    "reason": f"2029 falls within graduation range {earliest}-{latest}",
+                }
+
             return {
                 "status": "red",
                 "label": "🔴 Likely not eligible",
-                "reason": f"2029 is outside stated graduation range {earliest}-{latest}",
+                "reason": f"2029 is outside graduation range {earliest}-{latest}",
             }
 
-    # A single year can sometimes indicate a hard graduation requirement.
-    # But without more context, we don't want to incorrectly reject a job.
-    if len(years) == 1:
+    if re.search(
+        r"(graduat(?:e|ing|ion)|expected graduation).*?2029",
+        text
+    ):
         return {
-            "status": "yellow",
-            "label": "🟡 Check eligibility",
-            "reason": f"Graduation year {years[0]} mentioned, but context is unclear",
+            "status": "green",
+            "label": "🟢 Class of 2029 eligible",
+            "reason": "2029 is explicitly included in graduation eligibility",
         }
 
     return {
         "status": "yellow",
-        "label": "🟡 Check eligibility",
-        "reason": "No clear graduation-year restriction detected",
+        "label": "🟡 Eligibility unclear",
+        "reason": "No class-year restriction found — check application",
     }
