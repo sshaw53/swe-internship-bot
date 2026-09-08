@@ -7,6 +7,7 @@ import requests
 from sources import get_internships
 from filters import classify_2029_eligibility
 from datetime import datetime
+from priority import score_job
 
 
 SEEN_FILE = Path("seen_jobs.json")
@@ -79,20 +80,22 @@ def send_slack_alert(job):
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "🚨 NEW SUMMER 2027 SWE APPLICATION"
+                    "text": job["priority_label"]
                 }
             },
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": (
+                    text = (
                         f"*{company} — {title}*\n\n"
                         f"📍 *Location:* {location}\n"
                         f"🗓 *Posted:* {posted}\n"
                         f"🎓 *Eligibility:* {job['eligibility']}\n"
                         f"💡 *Why:* {job['eligibility_reason']}\n"
+                        f"⭐ *Priority:* {job['priority_score']}/10\n"
                         f"🔎 *Source:* {source}"
+                        f"{reason_line}"
                     )
                 }
             },
@@ -162,6 +165,12 @@ def main():
     
         job["eligibility"] = eligibility["label"]
         job["eligibility_reason"] = eligibility["reason"]
+
+        priority = score_job(job)
+
+        job["priority_score"] = priority["score"]
+        job["priority_label"] = priority["label"]
+        job["priority_reasons"] = priority["reasons"]
     
         send_slack_alert(job)
         seen_jobs.add(get_job_id(job))
