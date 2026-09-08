@@ -185,27 +185,63 @@ def get_simplify_jobs():
     return results
 
 
+import re
+
+
+def normalize_text(text):
+    text = text.lower()
+
+    text = re.sub(
+        r"\b(summer|internship|intern|2027)\b",
+        "",
+        text
+    )
+
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+
+    return " ".join(text.split())
+
+
+def normalize_company(company):
+    company = company.lower()
+
+    replacements = [
+        "inc.",
+        "inc",
+        "llc",
+        "corporation",
+        "corp.",
+        "corp",
+        "company",
+    ]
+
+    for term in replacements:
+        company = company.replace(term, "")
+
+    return " ".join(company.split())
+
+
 def deduplicate_jobs(jobs):
-    """
-    First dedupe by URL.
-    If URL is unavailable, dedupe by
-    company + title.
-    """
     unique = {}
 
     for job in jobs:
-        url = job.get(
-            "listingUrl",
-            ""
-        ).strip()
+        company = normalize_company(
+            job.get("company", "")
+        )
 
-        if url:
-            key = url.lower()
-        else:
-            key = (
-                job["company"].lower(),
-                job["title"].lower()
-            )
+        title = normalize_text(
+            job.get("title", "")
+        )
+
+        location = normalize_text(
+            job.get("location", "")
+        )
+
+        key = (
+            company,
+            title,
+            location,
+        )
 
         if key not in unique:
             unique[key] = job
