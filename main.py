@@ -74,6 +74,13 @@ def send_slack_alert(job):
     source = job.get("source", "Unknown")
     apply_url = get_apply_url(job)
 
+    reason_text = ", ".join(job.get("priority_reasons", []))
+    
+    if reason_text:
+        reason_line = f"\n⚡ *Priority reasons:* {reason_text}"
+    else:
+        reason_line = ""
+            
     message = {
         "blocks": [
             {
