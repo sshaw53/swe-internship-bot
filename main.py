@@ -87,7 +87,7 @@ def send_slack_alert(job):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    text = (
+                    "text": (
                         f"*{company} — {title}*\n\n"
                         f"📍 *Location:* {location}\n"
                         f"🗓 *Posted:* {posted}\n"
