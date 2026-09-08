@@ -1,5 +1,6 @@
 import requests
 import hashlib
+import re
 
 
 APPLYGUY_URL = (
@@ -183,10 +184,6 @@ def get_simplify_jobs():
         results.append(normalized)
 
     return results
-
-
-import re
-
 
 def normalize_text(text):
     text = text.lower()
